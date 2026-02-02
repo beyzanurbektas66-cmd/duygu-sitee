@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gelecekten Bir Duygu</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      height: 100vh;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: linear-gradient(120deg, #0f2027, #203a43, #2c5364);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      transition: background 1s ease;
+    }
+
+    .container {
+      text-align: center;
+      max-width: 520px;
+      padding: 30px;
+      backdrop-filter: blur(8px);
+      background: rgba(0,0,0,0.35);
+      border-radius: 20px;
+      box-shadow: 0 0 40px rgba(0,0,0,0.4);
+      animation: fadeIn 1.2s ease;
+      position: relative;
+      z-index: 2;
+    }
+
+    h1 { font-size: 28px; margin-bottom: 15px; }
+    p { font-size: 16px; margin-bottom: 18px; opacity: 0.9; }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: transform 0.2s, background 0.3s, opacity .2s;
+      opacity: .95;
+    }
+
+    button:hover { transform: scale(1.08); opacity: 1; }
+
+    .secondary {
+      margin-top: 10px;
+      background: rgba(255,255,255,.12);
+      color: #fff;
+    }
+
+    .msg {
+      margin-top: 22px;
+      font-size: 18px;
+      min-height: 64px;
+      letter-spacing: .3px;
+    }
+
+    .caret::after{
+      content:'▍';
+      margin-left: 4px;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .star {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: white;
+      opacity: 0.7;
+      animation: float 10s linear infinite;
+    }
+
+    @keyframes float { from { transform: translateY(100vh); } to { transform: translateY(-10px); } }
+
+    /* Gelecek modu overlay */
+    .overlay{
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(0,0,0,.85), rgba(0,0,0,.98));
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 3;
+      color: #fff;
+      animation: fadeIn .6s ease;
+    }
+    .overlay.show{ display: flex; }
+    .overlay .hint{ opacity: .85; font-size: 16px; }
+  </style>
+</head>
+<body>
+
+  <div class="overlay" id="overlay">
+    <div class="hint">🔮 Gelecek hesaplanıyor…</div>
+  </div>
+
+  <div class="container">
+    <h1>🌌 Gelecekten Bir Duygu</h1>
+    <p>Şu an nasılsın? Seç… gerisi evrenden gelsin.</p>
+
+    <div class="buttons">
+      <button onclick="selectMood('yorgun')">😔 Yorgunum</button>
+      <button onclick="selectMood('sinirli')">😡 Sinirliyim</button>
+      <button onclick="selectMood('mutlu')">😊 Mutluyum</button>
+      <button onclick="selectMood('yalniz')">🌙 Yalnızım</button>
+      <button onclick="selectMood('umutlu')">✨ Umutluyum</button>
+      <button onclick="selectMood('kararsiz')">🌀 Kararsızım</button>
+    </div>
+
+    <button class="secondary" onclick="futureMode()">🔮 10 saniye sonra geleceği göster</button>
+
+    <div class="msg caret" id="message"></div>
+  </div>
+
+  <script>
+    const messages = {
+      yorgun: [
+        "Bazen durmak da ilerlemedir.",
+        "Gelecekte bu yorgunluğa gülüyorsun.",
+        "Dinlenmek pes etmek değildir."
+      ],
+      sinirli: [
+        "Bu öfke geçici, sen kalıcısın.",
+        "Gelecek senden sakin kalmanı istiyor.",
+        "Derin bir nefes, her şeyi değiştirir."
+      ],
+      mutlu: [
+        "Bu anı hatırla, tekrar gelecek.",
+        "Gelecek senin enerjini seviyor.",
+        "Işığın fark ediliyor."
+      ],
+      yalniz: [
+        "Yalnız hissetmen, yalnız olduğun anlamına gelmez.",
+        "Gelecekte biri bu halini anlayacak.",
+        "Sessizlik bazen iyileştirir."
+      ],
+      umutlu: [
+        "Henüz görmediğin güzel şeyler var.",
+        "Bu his seni doğru yere götürüyor.",
+        "Gelecek sana açık."
+      ],
+      kararsiz: [
+        "Kararsızlık da bir süreçtir.",
+        "Acele etme, cevaplar gelir.",
+        "Her yol seni bir şeye dönüştürür."
+      ]
+    };
+
+    const backgrounds = {
+      yorgun: 'linear-gradient(120deg, #232526, #414345)',
+      sinirli: 'linear-gradient(120deg, #41295a, #2F0743)',
+      mutlu: 'linear-gradient(120deg, #11998e, #38ef7d)'
+    };
+
+    let lastMood = null;
+    let typingTimer = null;
+
+    function typeText(el, text, speed = 35){
+      clearInterval(typingTimer);
+      el.textContent = '';
+      let i = 0;
+      typingTimer = setInterval(() => {
+        el.textContent += text.charAt(i);
+        i++;
+        if(i >= text.length) clearInterval(typingTimer);
+      }, speed);
+    }
+
+    // Basit Web Audio efektleri (dosya gerekmez)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playTone(type){
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+
+      switch(type){
+        case 'yorgun':
+          o.type = 'sine';
+          o.frequency.value = 220;
+          g.gain.value = 0.05;
+          break;
+        case 'sinirli':
+          o.type = 'square';
+          o.frequency.value = 110;
+          g.gain.value = 0.04;
+          break;
+        case 'mutlu':
+          o.type = 'triangle';
+          o.frequency.value = 660;
+          g.gain.value = 0.05;
+          break;
+        case 'yalniz':
+          o.type = 'sine';
+          o.frequency.value = 180;
+          g.gain.value = 0.03;
+          break;
+        case 'umutlu':
+          o.type = 'triangle';
+          o.frequency.value = 520;
+          g.gain.value = 0.05;
+          break;
+        case 'kararsiz':
+          o.type = 'sawtooth';
+          o.frequency.value = 300;
+          g.gain.value = 0.04;
+          break;
+        default:
+          o.type = 'sine';
+          o.frequency.value = 440;
+          g.gain.value = 0.03;
+      }
+
+      o.start();
+      setTimeout(() => o.stop(), 350);
+    }
+      if(type === 'sinirli'){ o.type='square'; o.frequency.value=110; g.gain.value=.04; }
+      if(type === 'mutlu'){ o.type='triangle'; o.frequency.value=660; g.gain.value=.05; }
+      o.start(); setTimeout(()=>{ o.stop(); }, 300);
+    
+
+    function selectMood(mood) {
+      lastMood = mood;
+      document.body.style.background = backgrounds[mood];
+      const arr = messages[mood];
+      const random = arr[Math.floor(Math.random() * arr.length)];
+      const msg = document.getElementById('message');
+      playTone(mood);
+      typeText(msg, random);
+    }
+
+    function futureMode(){
+      if(!lastMood){
+        typeText(document.getElementById('message'), 'Önce bir duygu seçmelisin…');
+        return;
+      }
+      const overlay = document.getElementById('overlay');
+      overlay.classList.add('show');
+      setTimeout(()=>{
+        overlay.classList.remove('show');
+        selectMood(lastMood);
+      }, 10000);
+    }
+
+    // yıldızlar
+    for (let i = 0; i < 45; i++) {
+      const star = document.createElement('div');
+      star.className = 'star';
+      star.style.left = Math.random() * 100 + 'vw';
+      star.style.animationDuration = (6 + Math.random() * 10) + 's';
+      document.body.appendChild(star);
+    }
+  </script>
+
+</body>
+</html>
